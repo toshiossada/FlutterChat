@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:image_picker/image_picker.dart';
 
 void main() => runApp(MyApp());
 
@@ -83,17 +85,19 @@ class _ChatScreenState extends State<ChatScreen> {
                   switch (snapshot.connectionState) {
                     case ConnectionState.none:
                     case ConnectionState.waiting:
-                      return Center(child: CircularProgressIndicator(),);
+                      return Center(
+                        child: CircularProgressIndicator(),
+                      );
                       break;
                     default:
-                    return ListView.builder(
-                      reverse: true,
-                      itemCount: snapshot.data.documents.length,
-                      itemBuilder: (context, index){
-                        List r = snapshot.data.documents.reversed.toList();
-                        return ChatMessage(r[index].data);
-                      },
-                    );
+                      return ListView.builder(
+                        reverse: true,
+                        itemCount: snapshot.data.documents.length,
+                        itemBuilder: (context, index) {
+                          List r = snapshot.data.documents.reversed.toList();
+                          return ChatMessage(r[index].data);
+                        },
+                      );
                   }
                 },
               ),
@@ -143,7 +147,21 @@ class _TextComposerState extends State<TextComposer> {
             Container(
               child: IconButton(
                 icon: Icon(Icons.photo_camera),
-                onPressed: () {},
+                onPressed: () async {
+                  await _ensureLogedIn();
+                  var fileImage =
+                      await ImagePicker.pickImage(source: ImageSource.camera);
+                  if (fileImage == null) return;
+                  var task = FirebaseStorage.instance
+                      .ref()
+                      .child('photos')
+                      .child(
+                          '${googleSignIn.currentUser.id.toString()}${DateTime.now().millisecondsSinceEpoch}')
+                      .putFile(fileImage);
+                  var taskSnapshot = await task.onComplete;
+                  var url = await taskSnapshot.ref.getDownloadURL();
+                  _sendMessage(imgUrl: url);
+                },
               ),
             ),
             Expanded(
@@ -215,7 +233,12 @@ class ChatMessage extends StatelessWidget {
                 ),
                 Container(
                     margin: const EdgeInsets.only(top: 5),
-                    child: (data['imgUrl'] != null ) ? Image.network(data['imgUrl'] , width: 250,) : data['text'])
+                    child: (data['imgUrl'] != null)
+                        ? Image.network(
+                            data['imgUrl'],
+                            width: 250,
+                          )
+                        : data['text'])
               ],
             ),
           )
