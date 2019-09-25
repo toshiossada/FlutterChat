@@ -41,7 +41,8 @@ void _sendMessage({String text, String imgUrl}) {
     'text': text,
     'imgUrl': imgUrl,
     'senderName': googleSignIn.currentUser.displayName,
-    'senderPhotoUrl': googleSignIn.currentUser.photoUrl
+    'senderPhotoUrl': googleSignIn.currentUser.photoUrl,
+    'date': DateTime.now().millisecondsSinceEpoch
   });
 }
 
@@ -80,7 +81,7 @@ class _ChatScreenState extends State<ChatScreen> {
           children: <Widget>[
             Expanded(
               child: StreamBuilder(
-                stream: Firestore.instance.collection('messages').snapshots(),
+                stream: Firestore.instance.collection('messages').orderBy('date').snapshots(),
                 builder: (context, snapshot) {
                   switch (snapshot.connectionState) {
                     case ConnectionState.none:
@@ -238,7 +239,7 @@ class ChatMessage extends StatelessWidget {
                             data['imgUrl'],
                             width: 250,
                           )
-                        : data['text'])
+                        : Text(data['text']))
               ],
             ),
           )
